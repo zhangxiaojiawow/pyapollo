@@ -1,10 +1,12 @@
-# !/usr/bin/env python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# @Time    : 2019/
+# @Author  : Lin Luo/ Bruce Liu
+# @Email   : 15869300264@163.com
 import hashlib
 import json
 import logging
 import os
-import sys
 import threading
 import time
 
@@ -12,6 +14,12 @@ import requests
 
 
 class ApolloClient(object):
+    """
+    this module is modified from the project: https://github.com/filamoon/pyapollo
+    and had commit the merge request to the original repo
+    thanks for the contributors
+    since the contributors had stopped to commit code to the original repo, please submit issue or commit to https://github.com/BruceWW/pyapollo
+    """
     def __init__(self, app_id, cluster='default', config_server_url='http://localhost:8080', timeout=60, ip=None,
                  cycle_time=300, cache_file_path=None):
         """
@@ -290,25 +298,3 @@ class ApolloClient(object):
 
         logging.getLogger(__name__).info("Listener stopped!")
         self.stopped = True
-
-
-if __name__ == '__main__':
-    root = logging.getLogger()
-    root.setLevel(logging.DEBUG)
-
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    ch.setFormatter(formatter)
-    root.addHandler(ch)
-
-    client = ApolloClient('pycrawler')
-    client.start()
-    if sys.version_info[0] < 3:
-        v = raw_input('Press any key to quit...')
-    else:
-        v = input('Press any key to quit...')
-
-    client.stop()
-    while not client.stopped:
-        pass
