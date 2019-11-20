@@ -20,6 +20,7 @@ class ApolloClient(object):
     thanks for the contributors
     since the contributors had stopped to commit code to the original repo, please submit issue or commit to https://github.com/BruceWW/pyapollo
     """
+
     def __init__(self, app_id, cluster='default', config_server_url='http://localhost:8080', timeout=60, ip=None,
                  cycle_time=300, cache_file_path=None):
         """
@@ -43,7 +44,7 @@ class ApolloClient(object):
         self._cache = {}
         self._notification_map = {'application': -1}
         self._cycle_time = cycle_time
-        self._hash = dict()
+        self._hash = {}
         if cache_file_path is None:
             self._cache_file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'config')
         else:
@@ -139,7 +140,7 @@ class ApolloClient(object):
         """
         url = '{}/configfiles/json/{}/{}/{}?ip={}'.format(self.config_server_url, self.app_id, self.cluster, namespace,
                                                           self.ip)
-        data = dict()
+        data = {}
         try:
             r = requests.get(url)
             if r.ok:
@@ -228,7 +229,7 @@ class ApolloClient(object):
             with open(cache_file_path, 'r') as f:
                 result = json.loads(f.readline())
             return result
-        return dict()
+        return {}
 
     def _long_poll(self):
         url = '{}/notifications/v2'.format(self.config_server_url)
