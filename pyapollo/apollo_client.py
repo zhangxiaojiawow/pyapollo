@@ -213,7 +213,8 @@ class ApolloClient(object):
         if self._hash.get(namespace) == new_hash:
             pass
         else:
-            with open(os.path.join(self._cache_file_path, 'configuration_%s.txt' % namespace), 'w') as f:
+            with open(os.path.join(self._cache_file_path, '%s_configuration_%s.txt' % (self.app_id, namespace)),
+                      'w') as f:
                 f.write(new_string)
             self._hash[namespace] = new_hash
 
@@ -224,7 +225,7 @@ class ApolloClient(object):
         :param namespace:
         :return:
         """
-        cache_file_path = os.path.join(self._cache_file_path, 'configuration_%s.txt' % namespace)
+        cache_file_path = os.path.join(self._cache_file_path, '%s_configuration_%s.txt' % (self.app_id, namespace))
         if os.path.isfile(cache_file_path):
             with open(cache_file_path, 'r') as f:
                 result = json.loads(f.readline())
@@ -282,7 +283,7 @@ class ApolloClient(object):
         for file in os.listdir(self._cache_file_path):
             file_path = os.path.join(self._cache_file_path, file)
             if os.path.isfile(file_path):
-                namespace = file.split('.')[0].split('_')[1]
+                namespace = file.split('.')[0].split('_')[2]
                 with open(file_path) as f:
                     self._cache[namespace] = json.loads(f.read())['configurations']
         return True

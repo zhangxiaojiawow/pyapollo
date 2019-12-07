@@ -15,11 +15,14 @@ a = client.get_value('a')
 Automatic update is provided. When the Apollo client is initialized, the update frequency can be set. The default is 5 minutes
 Provide local configuration cache and service exception monitoring
 
+date      |author|version|comment
+11/24/2019 Bruce  0.8.2   优化本地缓存的存储方式
+
 """
 from setuptools import setup, find_packages
 import pyapollo
 
-SHORT = u'a client for apollo'
+SHORT = u'a client for ctrip apollo'
 
 setup(
     name='apollo-client',
@@ -32,7 +35,7 @@ setup(
     author=pyapollo.__author__,
     author_email=pyapollo.__email__,
     classifiers=[
-        'Programming Language :: Python',
+        'Programming Language :: Python3',
         'Programming Language :: Python :: 2.7',
     ],
     include_package_data=True,
