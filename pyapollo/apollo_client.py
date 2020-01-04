@@ -283,7 +283,7 @@ class ApolloClient(object):
         for file in os.listdir(self._cache_file_path):
             file_path = os.path.join(self._cache_file_path, file)
             if os.path.isfile(file_path):
-                namespace = file.split('.')[0].split('_')[2]
+                namespace = file.split('.')[0].split('_')[1]
                 with open(file_path) as f:
                     self._cache[namespace] = json.loads(f.read())['configurations']
         return True
