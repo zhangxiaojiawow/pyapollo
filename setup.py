@@ -20,20 +20,24 @@ date      |author|version|comment
 
 """
 from setuptools import setup, find_packages
-import pyapollo
 
 SHORT = u'a client for ctrip apollo'
 
+__version__ = "0.8.2"
+__author__ = 'Lin Luo / Bruce Liu'
+__email__ = '15869300264@163.com'
+
+
 setup(
     name='apollo-client',
-    version=pyapollo.__version__,
+    version=__version__,
     packages=find_packages(),
     install_requires=[
         'requests', 'eventlet'
     ],
     url='',
-    author=pyapollo.__author__,
-    author_email=pyapollo.__email__,
+    author=__author__,
+    author_email=__email__,
     classifiers=[
         'Programming Language :: Python3',
         'Programming Language :: Python :: 2.7',
