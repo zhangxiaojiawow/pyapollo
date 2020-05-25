@@ -44,3 +44,16 @@ The project is licensed under the [Apache 2 license](https://github.com/zouyx/ag
 
 # Reference
 Apollo : https://github.com/ctripcorp/apollo
+
+# Contributor
+[Bruce](https://github.com/BruceWW)<br/>
+[prchen](https://github.com/prchen) <br/>
+[xhrg](https://github.com/faicm)<br/>
+
+
+# Version log
+11/24/2019  Bruce  0.8.2   优化本地缓存的存储方式<br/>
+1/4/2020    Bruce  0.8.4   修复文件读取异常的bug<br/>
+3/24/2020   [prchen](https://github.com/prchen) 0.8.5   修复安装过程中requests模块依赖的问题<br/>
+7/5/2020    Bruce  0.9     主线程退出时，关闭获取配置的子线程<br/>
+25/5/2020   [xhrg](https://github.com/faicm)    0.9.1   修复文件名称读取异常<br/>
