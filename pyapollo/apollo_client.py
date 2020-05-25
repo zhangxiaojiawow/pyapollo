@@ -281,10 +281,13 @@ class ApolloClient(object):
         is only used while apollo server is unreachable
         :return:
         """
-        for file in os.listdir(self._cache_file_path):
-            file_path = os.path.join(self._cache_file_path, file)
+        for file_name in os.listdir(self._cache_file_path):
+            file_path = os.path.join(self._cache_file_path, file_name)
+            if file_path.endswith('.swp'):
+                continue
             if os.path.isfile(file_path):
-                namespace = file.split('.')[0].split('_')[1]
+                file_simple_name, file_ext_name = os.path.splitext(file_name)
+                namespace = file_simple_name.split('_')[-1]
                 with open(file_path) as f:
                     self._cache[namespace] = json.loads(f.read())['configurations']
         return True
