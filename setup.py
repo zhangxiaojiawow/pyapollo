@@ -20,13 +20,14 @@ Provide local configuration cache and service exception monitoring
 1/4/2020   Bruce  0.8.4   修复文件读取异常的bug
 3/24/2020  [prchen](https://github.com/prchen) 0.8.5   修复安装过程中requests模块依赖的问题
 7/5/2020   Bruce  0.9     主线程退出时，关闭获取配置的子线程
+25/5/2020  [xhrg](https://github.com/faicm)   0.9.1   修复文件名称读取异常
 
 """
 from setuptools import setup, find_packages
 
 SHORT = 'a client for apollo'
 
-__version__ = "0.9"
+__version__ = "0.9.1"
 __author__ = 'Lin Luo / Bruce Liu'
 __email__ = '15869300264@163.com'
 
