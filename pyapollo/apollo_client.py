@@ -283,10 +283,10 @@ class ApolloClient(object):
         """
         for file_name in os.listdir(self._cache_file_path):
             file_path = os.path.join(self._cache_file_path, file_name)
-            if file_path.endswith('.swp'):
-                continue
             if os.path.isfile(file_path):
                 file_simple_name, file_ext_name = os.path.splitext(file_name)
+                if file_ext_name == '.swp':
+                    continue
                 namespace = file_simple_name.split('_')[-1]
                 with open(file_path) as f:
                     self._cache[namespace] = json.loads(f.read())['configurations']
