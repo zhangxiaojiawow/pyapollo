@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 SHORT = 'a client for apollo'
 
-__version__ = "0.9.1"
+__version__ = "0.9.2"
 __author__ = 'Lin Luo / Bruce Liu'
 __email__ = '15869300264@163.com'
 readme_path = 'README.md'

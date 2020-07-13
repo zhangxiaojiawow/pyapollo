@@ -57,3 +57,4 @@ Apollo : https://github.com/ctripcorp/apollo
 3/24/2020   [prchen](https://github.com/prchen) 0.8.5   修复安装过程中requests模块依赖的问题<br/>
 7/5/2020    Bruce  0.9     主线程退出时，关闭获取配置的子线程<br/>
 25/5/2020   [xhrg](https://github.com/faicm)    0.9.1   修复文件名称读取异常<br/>
+13/7/2020   Bruce  0.9.2    【bugfix】[修复当namespace不存在时，服务器挂起导致get_value无响应](https://github.com/BruceWW/pyapollo/issues/7)

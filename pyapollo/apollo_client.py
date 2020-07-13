@@ -9,8 +9,11 @@ import logging
 import os
 import threading
 import time
+from telnetlib import Telnet
 
 import requests
+
+from .exceptions import NameSpaceNotFoundException, ServerNotResponseException, BasicException
 
 
 class ApolloClient(object):
@@ -77,23 +80,26 @@ class ApolloClient(object):
         :param auto_fetch_on_cache_miss:
         :return:
         """
-        if namespace not in self._notification_map:
-            self._notification_map[namespace] = -1
-            logging.getLogger(__name__).info("Add namespace '%s' to local notification map", namespace)
+        try:
+            if namespace not in self._notification_map:
+                self._notification_map[namespace] = -1
+                logging.getLogger(__name__).info("Add namespace '%s' to local notification map", namespace)
 
-        if namespace not in self._cache:
-            self._cache[namespace] = {}
-            logging.getLogger(__name__).info("Add namespace '%s' to local cache", namespace)
-            # This is a new namespace, need to do a blocking fetch to populate the local cache
-            self._long_poll()
+            if namespace not in self._cache:
+                self._cache[namespace] = {}
+                logging.getLogger(__name__).info("Add namespace '%s' to local cache", namespace)
+                # This is a new namespace, need to do a blocking fetch to populate the local cache
+                self._long_poll()
 
-        if key in self._cache[namespace]:
-            return self._cache[namespace][key]
-        else:
-            if auto_fetch_on_cache_miss:
-                return self._cached_http_get(key, default_val, namespace)
+            if key in self._cache[namespace]:
+                return self._cache[namespace][key]
             else:
-                return default_val
+                if auto_fetch_on_cache_miss:
+                    return self._cached_http_get(key, default_val, namespace)
+                else:
+                    return default_val
+        except BasicException:
+            return default_val
 
     def start(self, use_event_let=False, event_let_monkey_patch=False, catch_signals=True):
         """
@@ -131,6 +137,28 @@ class ApolloClient(object):
         self._stopping = True
         logging.getLogger(__name__).info("Stopping listener...")
 
+    def _http_get(self, url: str):
+        """
+        handle http request with get method
+        :param url:
+        :return:
+        """
+        try:
+            return requests.get(url=url, timeout=self.timeout // 2)
+        except requests.exceptions.ReadTimeout:
+            try:
+                remote = self.config_server_url.split(':')
+                host = remote[0]
+                if len(remote) == 1:
+                    port = 80
+                else:
+                    port = int(remote[1])
+                tn = Telnet(host=host, port=port, timeout=self.timeout // 2)
+                tn.close()
+                raise NameSpaceNotFoundException('namespace not found')
+            except ConnectionRefusedError:
+                raise ServerNotResponseException('server: %s not response' % self.config_server_url)
+
     def _cached_http_get(self, key, default_val, namespace='application'):
         """
         get the configuration content from server with cache
@@ -143,8 +171,8 @@ class ApolloClient(object):
                                                           self.ip)
         data = {}
         try:
-            r = requests.get(url)
-            if r.ok:
+            r = self._http_get(url)
+            if r.status_code == 200:
                 data = r.json()
                 self._cache[namespace] = data
                 logging.getLogger(__name__).info('Updated local cache for namespace %s', namespace)
@@ -172,7 +200,7 @@ class ApolloClient(object):
         """
         url = '{}/configs/{}/{}/{}?ip={}'.format(self.config_server_url, self.app_id, self.cluster, namespace, self.ip)
         try:
-            r = requests.get(url)
+            r = self._http_get(url)
             if r.status_code == 200:
                 data = r.json()
                 self._cache[namespace] = data['configurations']
