@@ -11,10 +11,12 @@ class BasicException(BaseException):
         print(msg)
 
     def __str__(self):
-        return '%s: %s' % (self.__name__, self._msg)
+        return "%s: %s" % (self.__name__, self._msg)
+
 
 class NameSpaceNotFoundException(BasicException):
     pass
+
 
 class ServerNotResponseException(BasicException):
     pass
