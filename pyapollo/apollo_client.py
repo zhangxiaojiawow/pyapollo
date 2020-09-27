@@ -10,7 +10,7 @@ import os
 import threading
 import time
 from telnetlib import Telnet
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import requests
 
@@ -26,11 +26,25 @@ class ApolloClient(object):
     since the contributors had stopped to commit code to the original repo, please submit issue or commit to https://github.com/BruceWW/pyapollo
     """
 
+    def __new__(cls, *args, **kwargs):
+        """
+        singleton model
+        """
+        key = f"{args},{kwargs}"
+        if hasattr(cls, "_instance"):
+            if key not in cls._instance:
+                cls._instance[key] = super().__new__(cls)
+        else:
+            cls._instance = {key: super().__new__(cls)}
+        return cls._instance[key]
+
     def __init__(
         self,
         app_id: str,
         cluster: str = "default",
         config_server_url: str = "http://localhost:8080",
+        env: str = "DEV",
+        namespaces: List[str] = None,
         ip: str = None,
         timeout: int = 60,
         cycle_time: int = 300,
@@ -52,11 +66,14 @@ class ApolloClient(object):
         self.cluster = cluster
         self.timeout = timeout
         self.stopped = False
+        self._env = env
         self.ip = self.init_ip(ip)
 
         self._stopping = False
         self._cache: Dict = {}
-        self._notification_map = {"application": -1}
+        if namespaces is None:
+            namespaces = ["application"]
+        self._notification_map = {namespace: -1 for namespace in namespaces}
         self._cycle_time = cycle_time
         self._hash: Dict = {}
         if cache_file_path is None:
@@ -67,6 +84,7 @@ class ApolloClient(object):
             self._cache_file_path = cache_file_path
         self._path_checker()
         self._request_model = request_model
+        self.start()
 
     @staticmethod
     def init_ip(ip: Optional[str]) -> str:
@@ -100,6 +118,7 @@ class ApolloClient(object):
         try:
             if namespace in self._cache:
                 return self._cache[namespace].get(key, default_val)
+            return default_val
         except BasicException:
             return default_val
 
@@ -208,7 +227,7 @@ class ApolloClient(object):
             r = self._http_get(url)
             if r.status_code == 200:
                 data = r.json()
-                self._cache[namespace] = data["configurations"]
+                self._cache[namespace] = data.get("configurations", {})
                 logging.getLogger(__name__).info(
                     "Updated local cache for namespace %s release key %s: %s",
                     namespace,
@@ -239,6 +258,7 @@ class ApolloClient(object):
             r = self._http_get(
                 url=url,
                 params={
+                    "ENV": self._env,
                     "appId": self.app_id,
                     "cluster": self.cluster,
                     "notifications": json.dumps(notifications, ensure_ascii=False),
@@ -263,6 +283,7 @@ class ApolloClient(object):
                         "%s has changes: notificationId=%d", ns, nid
                     )
                     self._notification_map[ns] = nid
+                    self._get_config_by_namespace(ns)
                     return
             else:
                 logging.getLogger(__name__).warning("Sleep...")
