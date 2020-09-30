@@ -30,7 +30,8 @@ class ApolloClient(object):
         """
         singleton model
         """
-        key = f"{args},{kwargs}"
+        tmp = {_: kwargs[_] for _ in sorted(kwargs)}
+        key = f"{args},{tmp}"
         if hasattr(cls, "_instance"):
             if key not in cls._instance:
                 cls._instance[key] = super().__new__(cls)
@@ -49,15 +50,17 @@ class ApolloClient(object):
         timeout: int = 60,
         cycle_time: int = 300,
         cache_file_path: str = None,
-        request_model: Optional[Any] = None,
+        # request_model: Optional[Any] = None,
     ):
         """
-
-        :param app_id:
-        :param cluster:
-        :param config_server_url:
-        :param timeout:
-        :param ip: the deploy ip for grey release
+        init method
+        :param app_id: application id
+        :param cluster: cluster name, default value is 'default'
+        :param config_server_url: with the format 'http://localhost:80080'
+        :param env: environment, default value is 'DEV'
+        :param namespaces: namespaces where config mapping, require a list object, default value is ["application"]
+        :param timeout: http request timeout seconds, default value is 60 seconds
+        :param ip: the deploy ip for grey release, default value is the local ip
         :param cycle_time: the cycle time to update configuration content from server
         :param cache_file_path: local cache file store path
         """
@@ -83,7 +86,8 @@ class ApolloClient(object):
         else:
             self._cache_file_path = cache_file_path
         self._path_checker()
-        self._request_model = request_model
+        # for http request extension
+        self._request_model = None
         self.start()
 
     @staticmethod
@@ -116,6 +120,7 @@ class ApolloClient(object):
         :return:
         """
         try:
+            # check the namespace is existed or not
             if namespace in self._cache:
                 return self._cache[namespace].get(key, default_val)
             return default_val
@@ -127,8 +132,10 @@ class ApolloClient(object):
         Start the long polling loop.
         :return:
         """
+        # check the cache is empty or not
         if len(self._cache) == 0:
             self._long_poll()
+        # start the thread to get config server with schedule
         t = threading.Thread(target=self._listener)
         t.setDaemon(True)
         t.start()
@@ -154,6 +161,7 @@ class ApolloClient(object):
         try:
             return requests.get(url=url, params=params, timeout=self.timeout // 2)
         except requests.exceptions.ReadTimeout:
+            # if read timeout, check the server is alive or not
             try:
                 remote = self.config_server_url.split(":")
                 host = remote[0]
@@ -163,8 +171,10 @@ class ApolloClient(object):
                     port = int(remote[1])
                 tn = Telnet(host=host, port=port, timeout=self.timeout // 2)
                 tn.close()
+                # if connect server succeed, raise the exception that namespace not found
                 raise NameSpaceNotFoundException("namespace not found")
             except ConnectionRefusedError:
+                # if connection refused, raise server not response error
                 raise ServerNotResponseException(
                     "server: %s not response" % self.config_server_url
                 )
@@ -186,8 +196,10 @@ class ApolloClient(object):
         :return:
         """
         new_string = json.dumps(data)
+        # trans the config map to md5 string, and check it's been updated or not
         new_hash = hashlib.md5(new_string.encode("utf-8")).hexdigest()
         if self._hash.get(namespace) != new_hash:
+            # if it's updated, update the local cache file
             with open(
                 os.path.join(
                     self._cache_file_path,
@@ -238,7 +250,7 @@ class ApolloClient(object):
             else:
                 data = self._get_local_cache(namespace)
                 logging.getLogger(__name__).info(
-                    "uncached http get configuration from local cache file"
+                    "get configuration from local cache file"
                 )
                 self._cache[namespace] = data["configurations"]
         except BaseException as e:
