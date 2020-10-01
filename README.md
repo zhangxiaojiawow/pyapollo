@@ -4,7 +4,7 @@ apollo-client - Python Client for Ctrip's Apollo
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 方便Python接入配置中心框架 [Apollo](https://github.com/ctripcorp/apollo) 所开发的Python版本客户端。
-Tested with python 3
+Tested with python 3.5+
 
 基于https://github.com/filamoon/pyapollo/ 修改
 
@@ -31,7 +31,7 @@ client.start()
 
 - 获取Apollo的配置
   ```
-  client.get_value(Key, DefaultValue)
+  client.get_value(Key, DefaultValue, namespace)
   ```
 
 # Contribution
@@ -58,3 +58,4 @@ Apollo : https://github.com/ctripcorp/apollo
 7/5/2020    Bruce  0.9     主线程退出时，关闭获取配置的子线程<br/>
 25/5/2020   [xhrg](https://github.com/faicm)    0.9.1   修复文件名称读取异常<br/>
 13/7/2020   Bruce  0.9.2    【bugfix】[修复当namespace不存在时，服务器挂起导致get_value无响应](https://github.com/BruceWW/pyapollo/issues/7)
+26/9/2020   Bruce  2.0     重构 | 优化数据获取方式 ｜ 优化定时任务

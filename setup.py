@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 SHORT = 'a client for apollo'
 
-__version__ = "0.9.2"
+__version__ = "2.0.1"
 __author__ = 'Lin Luo / Bruce Liu'
 __email__ = '15869300264@163.com'
 readme_path = 'README.md'
@@ -13,14 +13,13 @@ setup(
     version=__version__,
     packages=find_packages(),
     install_requires=[
-        'requests', 'eventlet'
+        'requests'
     ],
     url='',
     author=__author__,
     author_email=__email__,
     classifiers=[
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
     ],
     include_package_data=True,
     package_data={'': ['*.py', '*.pyc']},
