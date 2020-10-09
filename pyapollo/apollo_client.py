@@ -3,14 +3,13 @@
 # @Time    : 2019/
 # @Author  : Lin Luo/ Bruce Liu
 # @Email   : 15869300264@163.com
-import hashlib
 import json
 import logging
 import os
 import threading
 import time
 from telnetlib import Telnet
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import requests
 
@@ -43,13 +42,14 @@ class ApolloClient(object):
         self,
         app_id: str,
         cluster: str = "default",
-        config_server_url: str = "http://localhost:8080",
+        config_server_url: str = "http://localhost:8090",
         env: str = "DEV",
-        namespaces: List[str] = None,
+        # namespaces: List[str] = None,
         ip: str = None,
         timeout: int = 60,
         cycle_time: int = 300,
         cache_file_path: str = None,
+        authorization: str = None
         # request_model: Optional[Any] = None,
     ):
         """
@@ -58,7 +58,6 @@ class ApolloClient(object):
         :param cluster: cluster name, default value is 'default'
         :param config_server_url: with the format 'http://localhost:80080'
         :param env: environment, default value is 'DEV'
-        :param namespaces: namespaces where config mapping, require a list object, default value is ["application"]
         :param timeout: http request timeout seconds, default value is 60 seconds
         :param ip: the deploy ip for grey release, default value is the local ip
         :param cycle_time: the cycle time to update configuration content from server
@@ -71,12 +70,20 @@ class ApolloClient(object):
         self.stopped = False
         self._env = env
         self.ip = self.init_ip(ip)
+        remote = self.config_server_url.split(":")
+        self.host = f"{remote[0]}:{remote[1]}"
+        if len(remote) == 1:
+            self.port = 8090
+        else:
+            self.port = int(remote[2])
+        self._authorization = authorization
 
-        self._stopping = False
+        self._request_model = None
         self._cache: Dict = {}
-        if namespaces is None:
-            namespaces = ["application"]
-        self._notification_map = {namespace: -1 for namespace in namespaces}
+        self._notification_map = {}
+        # if namespaces is None:
+        #     namespaces = ["application"]
+        # self._notification_map = {namespace: -1 for namespace in namespaces}
         self._cycle_time = cycle_time
         self._hash: Dict = {}
         if cache_file_path is None:
@@ -87,8 +94,32 @@ class ApolloClient(object):
             self._cache_file_path = cache_file_path
         self._path_checker()
         # for http request extension
-        self._request_model = None
         self.start()
+
+    def _get_clusters(self) -> dict:
+        """
+        get clusters by app id
+        :return :
+        """
+        url = f"{self.host}:{self.port}/apps/{self.app_id}/clusters"
+        r = self._http_get(url)
+        if r.status_code == 200:
+            return r.json()
+        else:
+            return {}
+
+    def _get_namespaces(self) -> dict:
+        """
+        get namespaces by app id and cluster
+        :return :
+        """
+        url = f"{self.host}:{self.port}/apps/{self.app_id}/clusters/{self.cluster}/namespaces"
+        r = self._http_get(url)
+        if r.status_code == 200:
+            namespaces = r.json()
+            return {_.get("namespaceName"): _.get("id") for _ in namespaces}
+        else:
+            return {"application": -1}
 
     @staticmethod
     def init_ip(ip: Optional[str]) -> str:
@@ -159,17 +190,20 @@ class ApolloClient(object):
         :return:
         """
         try:
-            return requests.get(url=url, params=params, timeout=self.timeout // 2)
+            if self._authorization:
+                return requests.get(
+                    url=url,
+                    params=params,
+                    timeout=self.timeout // 2,
+                    headers={"Authorization": self._authorization},
+                )
+            else:
+                return requests.get(url=url, params=params, timeout=self.timeout // 2)
+
         except requests.exceptions.ReadTimeout:
             # if read timeout, check the server is alive or not
             try:
-                remote = self.config_server_url.split(":")
-                host = remote[0]
-                if len(remote) == 1:
-                    port = 80
-                else:
-                    port = int(remote[1])
-                tn = Telnet(host=host, port=port, timeout=self.timeout // 2)
+                tn = Telnet(host=self.host, port=self.port, timeout=self.timeout // 2)
                 tn.close()
                 # if connect server succeed, raise the exception that namespace not found
                 raise NameSpaceNotFoundException("namespace not found")
@@ -187,18 +221,19 @@ class ApolloClient(object):
         if not os.path.isdir(self._cache_file_path):
             os.mkdir(self._cache_file_path)
 
-    def _update_local_cache(self, data: str, namespace: str = "application") -> None:
+    def _update_local_cache(
+        self, release_key: str, data: str, namespace: str = "application"
+    ) -> None:
         """
         if local cache file exits, update the content
         if local cache file not exits, create a version
+        :param release_key:
         :param data: new configuration content
         :param namespace::s
         :return:
         """
-        new_string = json.dumps(data)
         # trans the config map to md5 string, and check it's been updated or not
-        new_hash = hashlib.md5(new_string.encode("utf-8")).hexdigest()
-        if self._hash.get(namespace) != new_hash:
+        if self._hash.get(namespace) != release_key:
             # if it's updated, update the local cache file
             with open(
                 os.path.join(
@@ -207,8 +242,9 @@ class ApolloClient(object):
                 ),
                 "w",
             ) as f:
+                new_string = json.dumps(data)
                 f.write(new_string)
-            self._hash[namespace] = new_hash
+            self._hash[namespace] = release_key
 
     def _get_local_cache(self, namespace: str = "application") -> Dict:
         """
@@ -232,75 +268,39 @@ class ApolloClient(object):
         :param namespace:
         :return:
         """
-        url = "{}/configs/{}/{}/{}?ip={}".format(
-            self.config_server_url, self.app_id, self.cluster, namespace, self.ip
-        )
+        url = f"{self.host}:{self.port}/apps/{self.app_id}/clusters/{self.cluster}/namespaces/{namespace}/releases/latest"
         try:
             r = self._http_get(url)
             if r.status_code == 200:
                 data = r.json()
-                self._cache[namespace] = data.get("configurations", {})
+                self._cache[namespace] = json.loads(data.get("configurations", "{}"))
                 logging.getLogger(__name__).info(
                     "Updated local cache for namespace %s release key %s: %s",
                     namespace,
                     data["releaseKey"],
                     repr(self._cache[namespace]),
                 )
-                self._update_local_cache(data, namespace)
+                self._update_local_cache(
+                    data.get("releaseKey", str(time.time())),
+                    data.get("configurations", {}),
+                    namespace,
+                )
             else:
                 data = self._get_local_cache(namespace)
                 logging.getLogger(__name__).info(
                     "get configuration from local cache file"
                 )
-                self._cache[namespace] = data["configurations"]
+                self._cache[namespace] = data
         except BaseException as e:
             logging.getLogger(__name__).warning(str(e))
             data = self._get_local_cache(namespace)
-            self._cache[namespace] = data["configurations"]
+            self._cache[namespace] = data
 
     def _long_poll(self) -> None:
-        url = "{}/notifications/v2".format(self.config_server_url)
-        notifications = []
-        for key in self._notification_map:
-            notification_id = self._notification_map[key]
-            notifications.append(
-                {"namespaceName": key, "notificationId": notification_id}
-            )
         try:
-            r = self._http_get(
-                url=url,
-                params={
-                    "ENV": self._env,
-                    "appId": self.app_id,
-                    "cluster": self.cluster,
-                    "notifications": json.dumps(notifications, ensure_ascii=False),
-                },
-            )
-
-            logging.getLogger(__name__).debug(
-                "Long polling returns %d: url=%s", r.status_code, r.request.url
-            )
-
-            if r.status_code == 304:
-                # no change, loop
-                logging.getLogger(__name__).debug("No change, loop...")
-                return
-
-            if r.status_code == 200:
-                data = r.json()
-                for entry in data:
-                    ns = entry["namespaceName"]
-                    nid = entry["notificationId"]
-                    logging.getLogger(__name__).info(
-                        "%s has changes: notificationId=%d", ns, nid
-                    )
-                    self._notification_map[ns] = nid
-                    self._get_config_by_namespace(ns)
-                    return
-            else:
-                logging.getLogger(__name__).warning("Sleep...")
-                time.sleep(self.timeout)
-                return
+            self._notification_map = self._get_namespaces()
+            for namespace in self._notification_map.keys():
+                self._get_config_by_namespace(namespace)
         except requests.exceptions.ReadTimeout as e:
             logging.getLogger(__name__).warning(str(e))
         except requests.exceptions.ConnectionError as e:
