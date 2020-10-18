@@ -80,7 +80,7 @@ class ApolloClient(object):
 
         self._request_model = None
         self._cache: Dict = {}
-        self._notification_map = {}
+        self._notification_map: Dict = {}
         # if namespaces is None:
         #     namespaces = ["application"]
         # self._notification_map = {namespace: -1 for namespace in namespaces}
@@ -332,5 +332,4 @@ class ApolloClient(object):
         while True:
             logging.getLogger(__name__).info("Entering listener loop...")
             self._long_poll()
-            print(1)
             time.sleep(self._cycle_time)
