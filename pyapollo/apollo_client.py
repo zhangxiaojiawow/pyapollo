@@ -39,18 +39,18 @@ class ApolloClient(object):
         return cls._instance[key]
 
     def __init__(
-        self,
-        app_id: str,
-        cluster: str = "default",
-        config_server_url: str = "http://localhost:8090",
-        env: str = "DEV",
-        # namespaces: List[str] = None,
-        ip: str = None,
-        timeout: int = 60,
-        cycle_time: int = 300,
-        cache_file_path: str = None,
-        authorization: str = None
-        # request_model: Optional[Any] = None,
+            self,
+            app_id: str,
+            cluster: str = "default",
+            config_server_url: str = "http://localhost:8090",
+            env: str = "DEV",
+            # namespaces: List[str] = None,
+            ip: str = None,
+            timeout: int = 60,
+            cycle_time: int = 300,
+            cache_file_path: str = None,
+            authorization: str = None
+            # request_model: Optional[Any] = None,
     ):
         """
         init method
@@ -101,7 +101,9 @@ class ApolloClient(object):
         get clusters by app id
         :return :
         """
-        url = f"{self.host}:{self.port}/apps/{self.app_id}/clusters"
+        # url = f"{self.host}:{self.port}/apps/{self.app_id}/clusters"
+        url = f"{self.host}:{self.port}/openapi/v1/envs/{self._env}/apps/{self.app_id}/clusters"
+
         r = self._http_get(url)
         if r.status_code == 200:
             return r.json()
@@ -113,7 +115,9 @@ class ApolloClient(object):
         get namespaces by app id and cluster
         :return :
         """
-        url = f"{self.host}:{self.port}/apps/{self.app_id}/clusters/{self.cluster}/namespaces"
+        # url = f"{self.host}:{self.port}/apps/{self.app_id}/clusters/{self.cluster}/namespaces"
+        url = f"{self.host}:{self.port}/openapi/v1/envs/{self._env}/apps/{self.app_id}/clusters/{self.cluster}/namespaces"
+
         r = self._http_get(url)
         if r.status_code == 200:
             namespaces = r.json()
@@ -141,7 +145,7 @@ class ApolloClient(object):
         return ip
 
     def get_value(
-        self, key: str, default_val: str = None, namespace: str = "application"
+            self, key: str, default_val: str = None, namespace: str = "application"
     ) -> Any:
         """
         get the configuration value
@@ -222,7 +226,7 @@ class ApolloClient(object):
             os.mkdir(self._cache_file_path)
 
     def _update_local_cache(
-        self, release_key: str, data: str, namespace: str = "application"
+            self, release_key: str, data: str, namespace: str = "application"
     ) -> None:
         """
         if local cache file exits, update the content
@@ -236,11 +240,11 @@ class ApolloClient(object):
         if self._hash.get(namespace) != release_key:
             # if it's updated, update the local cache file
             with open(
-                os.path.join(
-                    self._cache_file_path,
-                    "%s_configuration_%s.txt" % (self.app_id, namespace),
-                ),
-                "w",
+                    os.path.join(
+                        self._cache_file_path,
+                        "%s_configuration_%s.txt" % (self.app_id, namespace),
+                    ),
+                    "w",
             ) as f:
                 new_string = json.dumps(data)
                 f.write(new_string)
@@ -268,7 +272,9 @@ class ApolloClient(object):
         :param namespace:
         :return:
         """
-        url = f"{self.host}:{self.port}/apps/{self.app_id}/clusters/{self.cluster}/namespaces/{namespace}/releases/latest"
+        # url = f"{self.host}:{self.port}/apps/{self.app_id}/clusters/{self.cluster}/namespaces/{namespace}/releases/latest"
+        url = f"{self.host}:{self.port}/openapi/v1/envs/{self._env}/apps/{self.app_id}/clusters/{self.cluster}/namespaces/{namespace}/releases/latest"
+
         try:
             r = self._http_get(url)
             if r.status_code == 200:
